@@ -49,7 +49,7 @@
         }
         
         /* Avatar Selection */
-        .avatar-btn { transition: all 0.2s; border: 2px solid transparent; }
+        .avatar-btn { transition: all 0.2s; border: 3px solid transparent; padding: 5px; }
         .avatar-btn.selected { border-color: #58705C; transform: scale(1.1); background-color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         
         /* Checkbox */
@@ -61,7 +61,7 @@
 
     <div id="loginOverlay">
         <h1 class="font-serif text-3xl font-bold text-jp-primary mb-2">歡迎回來</h1>
-        <p class="text-sm text-gray-500 mb-8">請選擇你的身分</p>
+        <p class="text-sm text-gray-500 mb-8">請選擇你的狗狗身分 🐶</p>
         
         <div class="grid grid-cols-3 gap-6 px-6 mb-10 w-full max-w-sm">
             </div>
@@ -75,11 +75,11 @@
         
         <header class="p-6 pb-2 sticky top-0 z-30 bg-jp-bg/95 backdrop-blur-sm flex justify-between items-end">
             <div>
-                <h1 class="font-serif text-2xl font-bold tracking-widest text-jp-primary">京阪旅記</h1>
+                <h1 class="font-serif text-2xl font-bold tracking-widest text-jp-primary">京阪奈旅記</h1>
                 <p class="text-xs text-gray-500 tracking-wider mt-1">2026.06.16 - 06.21</p>
             </div>
             <div class="flex flex-col items-center">
-                <img id="headerAvatar" src="" class="w-8 h-8 rounded-full border border-jp-secondary bg-white">
+                <img id="headerAvatar" src="" class="w-9 h-9 rounded-full border border-jp-secondary bg-white object-contain p-0.5">
                 <span id="headerName" class="text-[10px] font-bold text-jp-primary mt-1"></span>
             </div>
         </header>
@@ -324,14 +324,14 @@
         }
         const db = firebase.firestore();
 
-        // Users Config
+        // 🐶 Users Config with Cute Dog Icons (Icons8)
         const users = [
-            { id: 'u1', name: '冠良', seed: 'Felix' },
-            { id: 'u2', name: '雅婷', seed: 'Aneka' },
-            { id: 'u3', name: '沛璇', seed: 'Willow' },
-            { id: 'u4', name: '孟佳', seed: 'Bella' },
-            { id: 'u5', name: '椀淇', seed: 'Zoe' },
-            { id: 'u6', name: '睿容', seed: 'Jack' }
+            { id: 'u1', name: '冠良', avatar: 'https://img.icons8.com/color/96/shiba-inu.png' },    // 柴犬
+            { id: 'u2', name: '雅婷', avatar: 'https://img.icons8.com/color/96/corgi.png' },        // 柯基
+            { id: 'u3', name: '沛璇', avatar: 'https://img.icons8.com/color/96/pug.png' },          // 巴哥
+            { id: 'u4', name: '孟佳', avatar: 'https://img.icons8.com/color/96/husky.png' },        // 哈士奇
+            { id: 'u5', name: '椀淇', avatar: 'https://img.icons8.com/color/96/beagle.png' },       // 米格魯
+            { id: 'u6', name: '睿容', avatar: 'https://img.icons8.com/color/96/french-bulldog.png' }// 法鬥
         ];
 
         let currentUser = JSON.parse(localStorage.getItem('trip_current_user'));
@@ -343,14 +343,13 @@
             container.innerHTML = '';
             
             users.forEach(u => {
-                const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${u.seed}&backgroundColor=e5e7eb`;
                 const div = document.createElement('div');
                 div.className = 'flex flex-col items-center gap-2';
                 div.innerHTML = `
-                    <button class="avatar-btn w-20 h-20 rounded-full bg-gray-100 overflow-hidden shadow-sm" onclick="selectUser('${u.id}', this)">
-                        <img src="${avatarUrl}" class="w-full h-full object-cover">
+                    <button class="avatar-btn w-20 h-20 rounded-full bg-white overflow-hidden shadow-sm flex items-center justify-center" onclick="selectUser('${u.id}', this)">
+                        <img src="${u.avatar}" class="w-16 h-16 object-contain">
                     </button>
-                    <span class="font-bold text-gray-600">${u.name}</span>
+                    <span class="font-bold text-gray-600 text-sm">${u.name}</span>
                 `;
                 container.appendChild(div);
             });
@@ -385,8 +384,7 @@
         }
 
         function updateHeader() {
-            const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser.seed}&backgroundColor=e5e7eb`;
-            document.getElementById('headerAvatar').src = avatarUrl;
+            document.getElementById('headerAvatar').src = currentUser.avatar;
             document.getElementById('headerName').innerText = currentUser.name;
         }
 
@@ -408,8 +406,8 @@
                     
                     const html = `
                         <div class="bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 border border-gray-100 relative group">
-                            <div class="flex flex-col items-center shrink-0">
-                                <img src="${data.userAvatar}" class="w-8 h-8 rounded-full border border-gray-100 bg-gray-50">
+                            <div class="flex flex-col items-center shrink-0 w-10">
+                                <img src="${data.userAvatar}" class="w-8 h-8 rounded-full border border-gray-100 bg-white object-contain p-0.5">
                                 <span class="text-[9px] text-gray-400 mt-0.5">${data.userName}</span>
                             </div>
                             
@@ -524,7 +522,7 @@
                     img: tempImageBase64,
                     userId: currentUser.id,
                     userName: currentUser.name,
-                    userAvatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser.seed}&backgroundColor=e5e7eb`,
+                    userAvatar: currentUser.avatar, // Save current dog avatar
                     timestamp: Date.now()
                 });
                 
@@ -564,20 +562,8 @@
         }
 
         function toggleCheck(item) {
-            // Firestore update nested field using dot notation
-            const key = `checklist.${item}`;
-            // First we need to know the current state, but simpler is to just read dom checkbox
-            // However, cleaner is to just toggle true/false. 
-            // Since we don't have atomic toggle in simple SDK, we can use a small transaction or just reading DOM is safer for UI consistency.
-            // Let's rely on reading the document snapshot again or just optimistic update.
-            // For simplicity in this structure: read the current status from local variable? No, let's just use Update.
-            
-            // Getting current checked status from DOM to invert it
-            // Actually, best way is to set it explicitly based on the checkbox 'checked' prop
-            // But 'toggleCheck' is called 'onchange', so the checkbox is ALREADY changed in UI.
-            // We just need to find it? No, passed item string.
-            
-            // To be robust:
+            // Optimistic update visual feedback could be added here, 
+            // but for simplicity we rely on the realtime listener to toggle the box back if write fails.
             db.collection('users').doc(currentUser.id).get().then(doc => {
                 let data = doc.data() || {};
                 let checklist = data.checklist || {};
