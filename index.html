@@ -1,313 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>大阪京都旅記 | 2026</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'jp-bg': '#F9F9F7',
-                        'jp-primary': '#58705C',
-                        'jp-secondary': '#D8CAB6',
-                        'jp-accent': '#D68984',
-                        'jp-text': '#434343',
-                        'jp-card': '#FFFFFF',
-                    },
-                    fontFamily: {
-                        sans: ['"Noto Sans JP"', 'sans-serif'],
-                        serif: ['"Noto Serif JP"', 'serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body { background-color: #F9F9F7; color: #434343; -webkit-tap-highlight-color: transparent; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .page-section { display: none; padding-bottom: 90px; animation: fadeIn 0.3s ease-in-out; }
-        .page-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); }
-        
-        /* Login Modal Overlay */
-        #loginOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #F9F9F7; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        
-        /* Avatar Selection */
-        .avatar-btn { transition: all 0.2s; border: 3px solid transparent; padding: 5px; }
-        .avatar-btn.selected { border-color: #58705C; transform: scale(1.1); background-color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        
-        /* Checkbox */
-        .custom-checkbox:checked + div { background-color: #58705C; border-color: #58705C; }
-        .custom-checkbox:checked + div:after { content: '\2714'; color: white; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-    </style>
-</head>
-<body class="antialiased min-h-screen relative max-w-md mx-auto bg-jp-bg shadow-2xl overflow-x-hidden">
-
-    <div id="loginOverlay">
-        <h1 class="font-serif text-3xl font-bold text-jp-primary mb-2">歡迎回來</h1>
-        <p class="text-sm text-gray-500 mb-8">請選擇你的狗狗身分 🐶</p>
-        
-        <div class="grid grid-cols-3 gap-6 px-6 mb-10 w-full max-w-sm">
-            </div>
-
-        <button id="confirmLoginBtn" onclick="completeLogin()" class="bg-jp-primary text-white px-8 py-3 rounded-full font-bold shadow-lg opacity-50 cursor-not-allowed transition" disabled>
-            進入旅程
-        </button>
-    </div>
-
-    <div id="appContent" class="hidden">
-        
-        <header class="p-6 pb-2 sticky top-0 z-30 bg-jp-bg/95 backdrop-blur-sm flex justify-between items-end">
-            <div>
-                <h1 class="font-serif text-2xl font-bold tracking-widest text-jp-primary">京阪旅記</h1>
-                <p class="text-xs text-gray-500 tracking-wider mt-1">2026.06.16 - 06.21</p>
-            </div>
-            <div class="flex flex-col items-center">
-                <img id="headerAvatar" src="" class="w-9 h-9 rounded-full border border-jp-secondary bg-white object-contain p-0.5">
-                <span id="headerName" class="text-[10px] font-bold text-jp-primary mt-1"></span>
-            </div>
-        </header>
-
-        <main class="p-4 pt-2">
-
-            <div id="plan" class="page-section active">
-                 <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-6 border-l-4 border-jp-secondary">
-                    <div class="flex items-center gap-3 mb-2">
-                        <i class="fa-solid fa-plane text-jp-primary"></i>
-                        <h3 class="font-bold text-lg">航班資訊</h3>
-                    </div>
-                    <p class="text-sm text-gray-400 italic pl-7">尚無航班資料</p>
-                </div>
-                
-                <div class="space-y-8 relative pl-4 border-l-2 border-dashed border-gray-300 ml-2">
-                    <div class="relative">
-                        <div class="absolute -left-[23px] top-0 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D1</div>
-                        <div class="pl-4">
-                            <h2 class="font-serif text-xl font-bold mb-1">6/16 (週一)</h2>
-                            <div class="text-xs text-gray-500 mb-4">大阪抵達</div>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-3">
-                                <span class="text-xs font-bold text-jp-accent">15:00</span>
-                                <h3 class="font-bold mb-2">通天閣 & 新世界</h3>
-                                <a href="https://www.google.com/maps/search/?api=1&query=大阪新世界" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
-                            </div>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
-                                <span class="text-xs font-bold text-jp-accent">17:30</span>
-                                <h3 class="font-bold mb-2">Harukas 300 展望台</h3>
-                                <a href="https://www.google.com/maps/search/?api=1&query=Harukas300" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="relative pt-4">
-                         <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D2</div>
-                        <div class="pl-4">
-                            <h2 class="font-serif text-xl font-bold mb-1">6/17 (週二)</h2>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-3">
-                                <span class="text-xs font-bold text-jp-accent">09:00</span>
-                                <h3 class="font-bold mb-2">伏見稻荷大社</h3>
-                                <a href="https://www.google.com/maps/search/?api=1&query=伏見稻荷大社" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
-                            </div>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
-                                <span class="text-xs font-bold text-jp-accent">13:30</span>
-                                <h3 class="font-bold mb-2">清水寺</h3>
-                                <a href="https://www.google.com/maps/search/?api=1&query=京都清水寺" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="relative pt-4">
-                        <div class="absolute -left-[23px] top-4 bg-jp-accent text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md border-2 border-white">D3</div>
-                        <div class="pl-4">
-                            <h2 class="font-serif text-xl font-bold mb-1 text-jp-accent">6/18 (週三)</h2>
-                            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-5 rounded-xl shadow-lg text-white">
-                                <h3 class="font-bold text-xl mb-2">USJ 環球影城</h3>
-                                <p class="text-sm text-blue-100 mb-4">全天行程</p>
-                                <a href="https://www.google.com/maps/search/?api=1&query=USJ" target="_blank" class="text-xs bg-white/20 px-3 py-1.5 rounded-full text-white"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="relative pt-4">
-                        <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D4</div>
-                        <div class="pl-4">
-                            <h2 class="font-serif text-xl font-bold mb-1">6/19 (週四)</h2>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
-                                <span class="text-xs font-bold text-jp-accent">09:00</span> <span class="font-bold">木津市場</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=大阪木津市場" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
-                                <span class="text-xs font-bold text-jp-accent">11:30</span> <span class="font-bold">大阪城</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=大阪城天守閣" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
-                                <span class="text-xs font-bold text-jp-accent">16:30</span> <span class="font-bold">梅田藍天大樓</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=梅田藍天大樓" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
-                                <span class="text-xs font-bold text-jp-accent">20:00</span> <span class="font-bold">阪神百貨</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=阪神百貨梅田本店" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="relative pt-4">
-                        <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D5</div>
-                        <div class="pl-4">
-                            <h2 class="font-serif text-xl font-bold mb-1">6/20 (週五)</h2>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
-                                <span class="text-xs font-bold text-jp-accent">13:00</span> <span class="font-bold">心齋橋 (HARBS)</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=HARBS心齋橋PARCO" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                             <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
-                                <span class="text-xs font-bold text-jp-accent">17:00</span> <span class="font-bold">道頓堀觀光船</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=道頓堀水上觀光船" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
-                                <span class="text-xs font-bold text-jp-accent">19:00</span> <span class="font-bold">花丸軒拉麵</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=花丸軒難波法善寺店" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="relative pt-4">
-                        <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D6</div>
-                        <div class="pl-4">
-                            <h2 class="font-serif text-xl font-bold mb-1">6/21 (週六)</h2>
-                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
-                                <span class="text-xs font-bold text-jp-accent">10:00</span> <span class="font-bold">臨空城 (Rinku Town)</span>
-                                <a href="https://www.google.com/maps/search/?api=1&query=Rinku+Premium+Outlets" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="guide" class="page-section">
-                <h2 class="font-serif text-2xl font-bold mb-6 text-center text-jp-primary">景點深度導覽</h2>
-                <div class="bg-jp-card rounded-2xl overflow-hidden shadow-sm mb-6">
-                    <img src="https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?auto=format&fit=crop&q=80&w=600" class="w-full h-32 object-cover">
-                    <div class="p-5">
-                        <h3 class="font-bold text-lg mb-2">伏見稻荷大社</h3>
-                        <p class="text-sm text-gray-600 leading-relaxed text-justify">千本鳥居是江戶時代信徒許願與還願捐贈形成的紅色隧道。這裡是全日本三萬間稻荷神社的總本宮。</p>
-                    </div>
-                </div>
-                <div class="bg-jp-card rounded-2xl overflow-hidden shadow-sm mb-6">
-                    <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=600" class="w-full h-32 object-cover">
-                    <div class="p-5">
-                        <h3 class="font-bold text-lg mb-2">清水寺</h3>
-                        <p class="text-sm text-gray-600 leading-relaxed text-justify">著名的清水舞台由139根巨大櫸木支撐，未用一根釘子。從舞台眺望京都市景，四季皆美。</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="wallet" class="page-section">
-                <div class="bg-jp-primary rounded-2xl p-5 text-white shadow-lg mb-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold"><i class="fa-solid fa-users mr-2"></i>共用記帳</h3>
-                        <div class="text-xs bg-white/20 px-2 py-1 rounded">匯率: 0.22</div>
-                    </div>
-                    <input type="text" id="calcInput" placeholder="輸入日幣 (如 500+200)" class="w-full bg-black/20 text-white text-2xl p-3 rounded-lg outline-none mb-3 font-mono">
-                    <div class="flex justify-between items-end">
-                        <div>
-                            <p class="text-xs opacity-70 mb-1">約合台幣 (TWD)</p>
-                            <p id="calcResultTwd" class="text-3xl font-bold font-mono">0</p>
-                        </div>
-                        <button onclick="calculate()" class="bg-jp-accent text-white px-6 py-2 rounded-lg font-bold shadow-md">計算</button>
-                    </div>
-                </div>
-
-                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6 border border-gray-100 relative">
-                    <h3 class="font-bold text-lg mb-4 text-jp-text">新增一筆 (同步中)</h3>
-                    <div class="grid grid-cols-3 gap-3 mb-3">
-                        <div class="col-span-2"><input type="text" id="expenseItem" placeholder="品項" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"></div>
-                        <div class="col-span-1"><input type="number" id="expenseAmount" placeholder="¥" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"></div>
-                    </div>
-                    <div class="flex gap-3">
-                        <label class="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 rounded-lg p-3 cursor-pointer hover:bg-gray-200">
-                            <i class="fa-solid fa-camera"></i> <span class="text-xs">照片</span>
-                            <input type="file" id="expensePhoto" accept="image/*" class="hidden" onchange="previewImage(this)">
-                        </label>
-                        <button onclick="addExpense()" id="addExpBtn" class="flex-1 bg-jp-primary text-white rounded-lg p-3 shadow-md font-bold">記一筆</button>
-                    </div>
-                    <div id="photoPreviewName" class="text-xs text-jp-primary mt-2 text-center h-4"></div>
-                    <div id="walletLoading" class="hidden absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl"><i class="fa-solid fa-spinner fa-spin text-jp-primary text-2xl"></i></div>
-                </div>
-
-                <div id="expenseList" class="space-y-3 pb-20">
-                    <div class="text-center text-gray-400 py-10"><i class="fa-solid fa-spinner fa-spin mr-2"></i>載入資料中...</div>
-                </div>
-            </div>
-
-            <div id="lists" class="page-section">
-                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6">
-                    <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-2 flex justify-between items-center">
-                        <span><i class="fa-solid fa-suitcase-rolling mr-2 text-jp-primary"></i>準備清單</span>
-                        <button onclick="addCustomCheckitem()" class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600"><i class="fa-solid fa-plus"></i> 新增</button>
-                    </h3>
-                    <div id="checklistContainer" class="space-y-3">
-                         <div class="text-center text-gray-400 py-4"><i class="fa-solid fa-spinner fa-spin"></i></div>
-                    </div>
-                </div>
-
-                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6 border-l-4 border-yellow-400">
-                    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-bullhorn mr-2 text-yellow-500"></i>大家想說的話</h3>
-                    <p class="text-xs text-gray-400 mb-2">這欄位的內容大家都能看到與編輯</p>
-                    <textarea id="publicMemoInput" onchange="savePublicMemo()" class="w-full h-24 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm resize-none" placeholder="輸入留言..."></textarea>
-                </div>
-
-                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6 border-l-4 border-jp-primary">
-                    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-lock mr-2 text-jp-primary"></i>我的私房筆記</h3>
-                    <p class="text-xs text-gray-400 mb-2">只有你自己看得到</p>
-                    <textarea id="privateMemoInput" onchange="savePrivateMemo()" class="w-full h-32 bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none" placeholder="想買的東西網址、密碼備忘..."></textarea>
-                    <div id="memoLinks" class="mt-2 flex flex-wrap gap-2"></div>
-                </div>
-            </div>
-
-            <div id="info" class="page-section">
-                <h2 class="font-serif text-2xl font-bold mb-6 text-center text-jp-primary">實用資訊</h2>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <a href="https://www.jma.go.jp/bosai/forecast/" target="_blank" class="bg-blue-50 p-5 rounded-xl flex flex-col items-center justify-center text-blue-600 hover:bg-blue-100 transition shadow-sm">
-                        <i class="fa-solid fa-cloud-sun text-3xl mb-2"></i> <span class="font-bold text-sm">天氣預報</span>
-                    </a>
-                    <a href="https://www.google.com/maps/search/police+hospital" target="_blank" class="bg-red-50 p-5 rounded-xl flex flex-col items-center justify-center text-red-600 hover:bg-red-100 transition shadow-sm">
-                        <i class="fa-solid fa-kit-medical text-3xl mb-2"></i> <span class="font-bold text-sm">緊急救援</span>
-                    </a>
-                </div>
-                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6">
-                    <h3 class="font-bold text-lg mb-3">📞 緊急聯絡</h3>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex justify-between border-b pb-2"><span>警察局</span><a href="tel:110" class="font-bold text-jp-primary">110</a></div>
-                        <div class="flex justify-between border-b pb-2"><span>火警/救護</span><a href="tel:119" class="font-bold text-jp-primary">119</a></div>
-                        <div class="flex justify-between"><span>旅外救助</span><a href="tel:+818010097179" class="font-bold text-jp-primary">+81-80-1009-7179</a></div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-        
-        <nav class="glass-nav fixed bottom-0 left-0 right-0 max-w-md mx-auto pb-safe z-40">
-            <div class="flex justify-around items-center p-2 pb-4 pt-3">
-                <button onclick="switchTab('plan')" class="nav-btn active flex flex-col items-center gap-1 w-1/5 text-jp-primary"><i class="fa-regular fa-calendar-check text-xl"></i><span class="text-[10px] font-medium">行程</span></button>
-                <button onclick="switchTab('guide')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-book-open text-xl"></i><span class="text-[10px] font-medium">導覽</span></button>
-                <button onclick="switchTab('wallet')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-wallet text-xl"></i><span class="text-[10px] font-medium">記帳</span></button>
-                <button onclick="switchTab('lists')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-list-check text-xl"></i><span class="text-[10px] font-medium">清單</span></button>
-                <button onclick="switchTab('info')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-circle-info text-xl"></i><span class="text-[10px] font-medium">資訊</span></button>
-            </div>
-        </nav>
-    </div>
-
-    <script>
+<script>
         // --- 1. CONFIGURATION & SETUP ---
         const firebaseConfig = {
             apiKey: "AIzaSyAs4eut568W2FW0zO4dU1ml-tjPbCeW_cI",
@@ -337,22 +28,30 @@
         let currentUser = JSON.parse(localStorage.getItem('trip_current_user'));
         let currentRate = 0.22;
 
+        // --- 🔒 NEW: SECURITY CHECK (最優先執行) ---
+        function checkPasscode() {
+            const CORRECT_CODE = 'osaka2026'; // 設定您的密碼
+            const storedCode = localStorage.getItem('trip_passcode');
+
+            // 如果曾經輸入正確，就直接通過
+            if (storedCode === CORRECT_CODE) return true;
+
+            // 否則跳出視窗詢問
+            const input = prompt("請輸入通關密語 (提示: osaka2026)");
+            
+            if (input === CORRECT_CODE) {
+                localStorage.setItem('trip_passcode', CORRECT_CODE);
+                return true;
+            } else {
+                alert("密碼錯誤，請重新整理網頁再試一次！");
+                // 清空畫面，不讓錯誤的人看到內容
+                document.body.innerHTML = '<div style="height:100vh;display:flex;justify-content:center;align-items:center;flex-direction:column;color:#58705C;"><div>🚫</div><div style="margin-top:10px;font-weight:bold;">Access Denied</div></div>';
+                return false;
+            }
+        }
+
         // --- 2. LOGIN LOGIC ---
         function initLoginUI() {
-			// --- 新增這段：檢查通關密語 ---
-			const secretCode = localStorage.getItem('trip_secret_code');
-			if (secretCode !== 'osaka2026') { // 您可以設定自己喜歡的密碼
-				const input = prompt("請輸入本次旅遊的通關密語：");
-				if (input === 'osaka2026') {
-					localStorage.setItem('trip_secret_code', input);
-				} else {
-					alert("密碼錯誤，無法進入！");
-					document.body.innerHTML = ''; // 清空畫面不給看
-					return;
-				}
-			}
-			// ---------------------------
-			const container = document.querySelector('#loginOverlay .grid');
             const container = document.querySelector('#loginOverlay .grid');
             container.innerHTML = '';
             
@@ -536,7 +235,7 @@
                     img: tempImageBase64,
                     userId: currentUser.id,
                     userName: currentUser.name,
-                    userAvatar: currentUser.avatar, // Save current dog avatar
+                    userAvatar: currentUser.avatar, 
                     timestamp: Date.now()
                 });
                 
@@ -576,8 +275,6 @@
         }
 
         function toggleCheck(item) {
-            // Optimistic update visual feedback could be added here, 
-            // but for simplicity we rely on the realtime listener to toggle the box back if write fails.
             db.collection('users').doc(currentUser.id).get().then(doc => {
                 let data = doc.data() || {};
                 let checklist = data.checklist || {};
@@ -624,9 +321,10 @@
             window.scrollTo(0,0);
         }
 
-        // Init
-        initLoginUI();
+        // --- 5. INITIALIZATION (這裡最關鍵！) ---
+        // 只有在通過密碼檢查後，才執行 initLoginUI
+        if (checkPasscode()) {
+            initLoginUI();
+        }
 
     </script>
-</body>
-</html>
