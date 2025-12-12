@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>大阪京都旅記 | 2026</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'jp-bg': '#F9F9F7',
+                        'jp-primary': '#58705C',
+                        'jp-secondary': '#D8CAB6',
+                        'jp-accent': '#D68984',
+                        'jp-text': '#434343',
+                        'jp-card': '#FFFFFF',
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                        serif: ['"Noto Serif JP"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #F9F9F7; color: #434343; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .page-section { display: none; padding-bottom: 90px; animation: fadeIn 0.3s ease-in-out; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); }
+        
+        /* Login Modal Overlay */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #F9F9F7; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        
+        /* Avatar Selection */
+        .avatar-btn { transition: all 0.2s; border: 2px solid transparent; }
+        .avatar-btn.selected { border-color: #58705C; transform: scale(1.1); background-color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        
+        /* Checkbox */
+        .custom-checkbox:checked + div { background-color: #58705C; border-color: #58705C; }
+        .custom-checkbox:checked + div:after { content: '\2714'; color: white; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body class="antialiased min-h-screen relative max-w-md mx-auto bg-jp-bg shadow-2xl overflow-x-hidden">
+
+    <div id="loginOverlay">
+        <h1 class="font-serif text-3xl font-bold text-jp-primary mb-2">歡迎回來</h1>
+        <p class="text-sm text-gray-500 mb-8">請選擇你的身分</p>
+        
+        <div class="grid grid-cols-3 gap-6 px-6 mb-10 w-full max-w-sm">
+            </div>
+
+        <button id="confirmLoginBtn" onclick="completeLogin()" class="bg-jp-primary text-white px-8 py-3 rounded-full font-bold shadow-lg opacity-50 cursor-not-allowed transition" disabled>
+            進入旅程
+        </button>
+    </div>
+
+    <div id="appContent" class="hidden">
+        
+        <header class="p-6 pb-2 sticky top-0 z-30 bg-jp-bg/95 backdrop-blur-sm flex justify-between items-end">
+            <div>
+                <h1 class="font-serif text-2xl font-bold tracking-widest text-jp-primary">京阪旅記</h1>
+                <p class="text-xs text-gray-500 tracking-wider mt-1">2026.06.16 - 06.21</p>
+            </div>
+            <div class="flex flex-col items-center">
+                <img id="headerAvatar" src="" class="w-8 h-8 rounded-full border border-jp-secondary bg-white">
+                <span id="headerName" class="text-[10px] font-bold text-jp-primary mt-1"></span>
+            </div>
+        </header>
+
+        <main class="p-4 pt-2">
+
+            <div id="plan" class="page-section active">
+                 <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-6 border-l-4 border-jp-secondary">
+                    <div class="flex items-center gap-3 mb-2">
+                        <i class="fa-solid fa-plane text-jp-primary"></i>
+                        <h3 class="font-bold text-lg">航班資訊</h3>
+                    </div>
+                    <p class="text-sm text-gray-400 italic pl-7">尚無航班資料</p>
+                </div>
+                
+                <div class="space-y-8 relative pl-4 border-l-2 border-dashed border-gray-300 ml-2">
+                    <div class="relative">
+                        <div class="absolute -left-[23px] top-0 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D1</div>
+                        <div class="pl-4">
+                            <h2 class="font-serif text-xl font-bold mb-1">6/16 (週一)</h2>
+                            <div class="text-xs text-gray-500 mb-4">大阪抵達</div>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-3">
+                                <span class="text-xs font-bold text-jp-accent">15:00</span>
+                                <h3 class="font-bold mb-2">通天閣 & 新世界</h3>
+                                <a href="https://www.google.com/maps/search/?api=1&query=大阪新世界" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
+                            </div>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
+                                <span class="text-xs font-bold text-jp-accent">17:30</span>
+                                <h3 class="font-bold mb-2">Harukas 300 展望台</h3>
+                                <a href="https://www.google.com/maps/search/?api=1&query=Harukas300" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative pt-4">
+                         <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D2</div>
+                        <div class="pl-4">
+                            <h2 class="font-serif text-xl font-bold mb-1">6/17 (週二)</h2>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-3">
+                                <span class="text-xs font-bold text-jp-accent">09:00</span>
+                                <h3 class="font-bold mb-2">伏見稻荷大社</h3>
+                                <a href="https://www.google.com/maps/search/?api=1&query=伏見稻荷大社" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
+                            </div>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
+                                <span class="text-xs font-bold text-jp-accent">13:30</span>
+                                <h3 class="font-bold mb-2">清水寺</h3>
+                                <a href="https://www.google.com/maps/search/?api=1&query=京都清水寺" target="_blank" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative pt-4">
+                        <div class="absolute -left-[23px] top-4 bg-jp-accent text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md border-2 border-white">D3</div>
+                        <div class="pl-4">
+                            <h2 class="font-serif text-xl font-bold mb-1 text-jp-accent">6/18 (週三)</h2>
+                            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-5 rounded-xl shadow-lg text-white">
+                                <h3 class="font-bold text-xl mb-2">USJ 環球影城</h3>
+                                <p class="text-sm text-blue-100 mb-4">全天行程</p>
+                                <a href="https://www.google.com/maps/search/?api=1&query=USJ" target="_blank" class="text-xs bg-white/20 px-3 py-1.5 rounded-full text-white"><i class="fa-solid fa-map-location-dot mr-1"></i>導航</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative pt-4">
+                        <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D4</div>
+                        <div class="pl-4">
+                            <h2 class="font-serif text-xl font-bold mb-1">6/19 (週四)</h2>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
+                                <span class="text-xs font-bold text-jp-accent">09:00</span> <span class="font-bold">木津市場</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=大阪木津市場" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
+                                <span class="text-xs font-bold text-jp-accent">11:30</span> <span class="font-bold">大阪城</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=大阪城天守閣" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
+                                <span class="text-xs font-bold text-jp-accent">16:30</span> <span class="font-bold">梅田藍天大樓</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=梅田藍天大樓" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
+                                <span class="text-xs font-bold text-jp-accent">20:00</span> <span class="font-bold">阪神百貨</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=阪神百貨梅田本店" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative pt-4">
+                        <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D5</div>
+                        <div class="pl-4">
+                            <h2 class="font-serif text-xl font-bold mb-1">6/20 (週五)</h2>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
+                                <span class="text-xs font-bold text-jp-accent">13:00</span> <span class="font-bold">心齋橋 (HARBS)</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=HARBS心齋橋PARCO" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                             <div class="bg-jp-card p-4 rounded-xl shadow-sm mb-2">
+                                <span class="text-xs font-bold text-jp-accent">17:00</span> <span class="font-bold">道頓堀觀光船</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=道頓堀水上觀光船" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
+                                <span class="text-xs font-bold text-jp-accent">19:00</span> <span class="font-bold">花丸軒拉麵</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=花丸軒難波法善寺店" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative pt-4">
+                        <div class="absolute -left-[23px] top-4 bg-jp-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md">D6</div>
+                        <div class="pl-4">
+                            <h2 class="font-serif text-xl font-bold mb-1">6/21 (週六)</h2>
+                            <div class="bg-jp-card p-4 rounded-xl shadow-sm">
+                                <span class="text-xs font-bold text-jp-accent">10:00</span> <span class="font-bold">臨空城 (Rinku Town)</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query=Rinku+Premium+Outlets" target="_blank" class="ml-2 text-xs text-blue-500"><i class="fa-solid fa-location-arrow"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="guide" class="page-section">
+                <h2 class="font-serif text-2xl font-bold mb-6 text-center text-jp-primary">景點深度導覽</h2>
+                <div class="bg-jp-card rounded-2xl overflow-hidden shadow-sm mb-6">
+                    <img src="https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?auto=format&fit=crop&q=80&w=600" class="w-full h-32 object-cover">
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg mb-2">伏見稻荷大社</h3>
+                        <p class="text-sm text-gray-600 leading-relaxed text-justify">千本鳥居是江戶時代信徒許願與還願捐贈形成的紅色隧道。這裡是全日本三萬間稻荷神社的總本宮。</p>
+                    </div>
+                </div>
+                <div class="bg-jp-card rounded-2xl overflow-hidden shadow-sm mb-6">
+                    <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=600" class="w-full h-32 object-cover">
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg mb-2">清水寺</h3>
+                        <p class="text-sm text-gray-600 leading-relaxed text-justify">著名的清水舞台由139根巨大櫸木支撐，未用一根釘子。從舞台眺望京都市景，四季皆美。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="wallet" class="page-section">
+                <div class="bg-jp-primary rounded-2xl p-5 text-white shadow-lg mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold"><i class="fa-solid fa-users mr-2"></i>共用記帳</h3>
+                        <div class="text-xs bg-white/20 px-2 py-1 rounded">匯率: 0.22</div>
+                    </div>
+                    <input type="text" id="calcInput" placeholder="輸入日幣 (如 500+200)" class="w-full bg-black/20 text-white text-2xl p-3 rounded-lg outline-none mb-3 font-mono">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-xs opacity-70 mb-1">約合台幣 (TWD)</p>
+                            <p id="calcResultTwd" class="text-3xl font-bold font-mono">0</p>
+                        </div>
+                        <button onclick="calculate()" class="bg-jp-accent text-white px-6 py-2 rounded-lg font-bold shadow-md">計算</button>
+                    </div>
+                </div>
+
+                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6 border border-gray-100 relative">
+                    <h3 class="font-bold text-lg mb-4 text-jp-text">新增一筆 (同步中)</h3>
+                    <div class="grid grid-cols-3 gap-3 mb-3">
+                        <div class="col-span-2"><input type="text" id="expenseItem" placeholder="品項" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"></div>
+                        <div class="col-span-1"><input type="number" id="expenseAmount" placeholder="¥" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"></div>
+                    </div>
+                    <div class="flex gap-3">
+                        <label class="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 rounded-lg p-3 cursor-pointer hover:bg-gray-200">
+                            <i class="fa-solid fa-camera"></i> <span class="text-xs">照片</span>
+                            <input type="file" id="expensePhoto" accept="image/*" class="hidden" onchange="previewImage(this)">
+                        </label>
+                        <button onclick="addExpense()" id="addExpBtn" class="flex-1 bg-jp-primary text-white rounded-lg p-3 shadow-md font-bold">記一筆</button>
+                    </div>
+                    <div id="photoPreviewName" class="text-xs text-jp-primary mt-2 text-center h-4"></div>
+                    <div id="walletLoading" class="hidden absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl"><i class="fa-solid fa-spinner fa-spin text-jp-primary text-2xl"></i></div>
+                </div>
+
+                <div id="expenseList" class="space-y-3 pb-20">
+                    <div class="text-center text-gray-400 py-10"><i class="fa-solid fa-spinner fa-spin mr-2"></i>載入資料中...</div>
+                </div>
+            </div>
+
+            <div id="lists" class="page-section">
+                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6">
+                    <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-2 flex justify-between items-center">
+                        <span><i class="fa-solid fa-suitcase-rolling mr-2 text-jp-primary"></i>準備清單</span>
+                        <button onclick="addCustomCheckitem()" class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600"><i class="fa-solid fa-plus"></i> 新增</button>
+                    </h3>
+                    <div id="checklistContainer" class="space-y-3">
+                         <div class="text-center text-gray-400 py-4"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                    </div>
+                </div>
+
+                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6 border-l-4 border-yellow-400">
+                    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-bullhorn mr-2 text-yellow-500"></i>大家想說的話</h3>
+                    <p class="text-xs text-gray-400 mb-2">這欄位的內容大家都能看到與編輯</p>
+                    <textarea id="publicMemoInput" onchange="savePublicMemo()" class="w-full h-24 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm resize-none" placeholder="輸入留言..."></textarea>
+                </div>
+
+                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6 border-l-4 border-jp-primary">
+                    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-lock mr-2 text-jp-primary"></i>我的私房筆記</h3>
+                    <p class="text-xs text-gray-400 mb-2">只有你自己看得到</p>
+                    <textarea id="privateMemoInput" onchange="savePrivateMemo()" class="w-full h-32 bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none" placeholder="想買的東西網址、密碼備忘..."></textarea>
+                    <div id="memoLinks" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <div id="info" class="page-section">
+                <h2 class="font-serif text-2xl font-bold mb-6 text-center text-jp-primary">實用資訊</h2>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <a href="https://www.jma.go.jp/bosai/forecast/" target="_blank" class="bg-blue-50 p-5 rounded-xl flex flex-col items-center justify-center text-blue-600 hover:bg-blue-100 transition shadow-sm">
+                        <i class="fa-solid fa-cloud-sun text-3xl mb-2"></i> <span class="font-bold text-sm">天氣預報</span>
+                    </a>
+                    <a href="https://www.google.com/maps/search/police+hospital" target="_blank" class="bg-red-50 p-5 rounded-xl flex flex-col items-center justify-center text-red-600 hover:bg-red-100 transition shadow-sm">
+                        <i class="fa-solid fa-kit-medical text-3xl mb-2"></i> <span class="font-bold text-sm">緊急救援</span>
+                    </a>
+                </div>
+                <div class="bg-jp-card p-5 rounded-xl shadow-sm mb-6">
+                    <h3 class="font-bold text-lg mb-3">📞 緊急聯絡</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between border-b pb-2"><span>警察局</span><a href="tel:110" class="font-bold text-jp-primary">110</a></div>
+                        <div class="flex justify-between border-b pb-2"><span>火警/救護</span><a href="tel:119" class="font-bold text-jp-primary">119</a></div>
+                        <div class="flex justify-between"><span>旅外救助</span><a href="tel:+818010097179" class="font-bold text-jp-primary">+81-80-1009-7179</a></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        
+        <nav class="glass-nav fixed bottom-0 left-0 right-0 max-w-md mx-auto pb-safe z-40">
+            <div class="flex justify-around items-center p-2 pb-4 pt-3">
+                <button onclick="switchTab('plan')" class="nav-btn active flex flex-col items-center gap-1 w-1/5 text-jp-primary"><i class="fa-regular fa-calendar-check text-xl"></i><span class="text-[10px] font-medium">行程</span></button>
+                <button onclick="switchTab('guide')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-book-open text-xl"></i><span class="text-[10px] font-medium">導覽</span></button>
+                <button onclick="switchTab('wallet')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-wallet text-xl"></i><span class="text-[10px] font-medium">記帳</span></button>
+                <button onclick="switchTab('lists')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-list-check text-xl"></i><span class="text-[10px] font-medium">清單</span></button>
+                <button onclick="switchTab('info')" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-400"><i class="fa-solid fa-circle-info text-xl"></i><span class="text-[10px] font-medium">資訊</span></button>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION & SETUP ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAs4eut568W2FW0zO4dU1ml-tjPbCeW_cI",
+            authDomain: "osaka-trip-2026-f0e8a.firebaseapp.com",
+            projectId: "osaka-trip-2026-f0e8a",
+            storageBucket: "osaka-trip-2026-f0e8a.firebasestorage.app",
+            messagingSenderId: "258296706242",
+            appId: "1:258296706242:web:a1358012151d8767f9b75b"
+        };
+        
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // Users Config
+        const users = [
+            { id: 'u1', name: '冠良', seed: 'Felix' },
+            { id: 'u2', name: '雅婷', seed: 'Aneka' },
+            { id: 'u3', name: '沛璇', seed: 'Willow' },
+            { id: 'u4', name: '孟佳', seed: 'Bella' },
+            { id: 'u5', name: '椀淇', seed: 'Zoe' },
+            { id: 'u6', name: '睿容', seed: 'Jack' }
+        ];
+
+        let currentUser = JSON.parse(localStorage.getItem('trip_current_user'));
+        let currentRate = 0.22;
+
+        // --- 2. LOGIN LOGIC ---
+        function initLoginUI() {
+            const container = document.querySelector('#loginOverlay .grid');
+            container.innerHTML = '';
+            
+            users.forEach(u => {
+                const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${u.seed}&backgroundColor=e5e7eb`;
+                const div = document.createElement('div');
+                div.className = 'flex flex-col items-center gap-2';
+                div.innerHTML = `
+                    <button class="avatar-btn w-20 h-20 rounded-full bg-gray-100 overflow-hidden shadow-sm" onclick="selectUser('${u.id}', this)">
+                        <img src="${avatarUrl}" class="w-full h-full object-cover">
+                    </button>
+                    <span class="font-bold text-gray-600">${u.name}</span>
+                `;
+                container.appendChild(div);
+            });
+
+            if (currentUser) {
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('appContent').classList.remove('hidden');
+                updateHeader();
+                startApp();
+            }
+        }
+
+        let selectedUserTemp = null;
+        function selectUser(uid, btn) {
+            document.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedUserTemp = users.find(u => u.id === uid);
+            const confirmBtn = document.getElementById('confirmLoginBtn');
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            confirmBtn.classList.add('hover:bg-jp-primary/90');
+        }
+
+        function completeLogin() {
+            if (!selectedUserTemp) return;
+            currentUser = selectedUserTemp;
+            localStorage.setItem('trip_current_user', JSON.stringify(currentUser));
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('appContent').classList.remove('hidden');
+            updateHeader();
+            startApp();
+        }
+
+        function updateHeader() {
+            const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser.seed}&backgroundColor=e5e7eb`;
+            document.getElementById('headerAvatar').src = avatarUrl;
+            document.getElementById('headerName').innerText = currentUser.name;
+        }
+
+        // --- 3. APP CORE LOGIC (Listeners) ---
+        function startApp() {
+            // A. Listen to Shared Expenses
+            db.collection('expenses').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                const list = document.getElementById('expenseList');
+                list.innerHTML = '';
+                if(snapshot.empty) {
+                     list.innerHTML = '<div class="text-center text-gray-300 py-10">尚無記帳紀錄，快來記第一筆吧！</div>';
+                     return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const twd = Math.round(data.amount * currentRate);
+                    const isMine = data.userId === currentUser.id;
+                    
+                    const html = `
+                        <div class="bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 border border-gray-100 relative group">
+                            <div class="flex flex-col items-center shrink-0">
+                                <img src="${data.userAvatar}" class="w-8 h-8 rounded-full border border-gray-100 bg-gray-50">
+                                <span class="text-[9px] text-gray-400 mt-0.5">${data.userName}</span>
+                            </div>
+                            
+                            ${data.img ? `<div class="w-12 h-12 rounded bg-gray-200 bg-cover bg-center shrink-0" style="background-image: url('${data.img}')" onclick="viewImage('${data.img}')"></div>` : ''}
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold text-gray-800 truncate">${data.item}</div>
+                                <div class="text-xs text-gray-400">¥${parseInt(data.amount).toLocaleString()}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-jp-primary">NT$${twd.toLocaleString()}</div>
+                                <div class="text-[10px] text-gray-300">${new Date(data.timestamp).toLocaleDateString()}</div>
+                            </div>
+                             ${isMine ? `<button onclick="deleteExpense('${doc.id}')" class="absolute top-2 right-2 text-red-300 hover:text-red-500 opacity-20 group-hover:opacity-100"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        </div>
+                    `;
+                    list.innerHTML += html;
+                });
+            });
+
+            // B. Listen to Public Memo
+            db.collection('global').doc('public_memo').onSnapshot(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    // Avoid overwriting if user is typing
+                    if (document.activeElement.id !== 'publicMemoInput') {
+                         document.getElementById('publicMemoInput').value = data.content || '';
+                    }
+                }
+            });
+
+            // C. Listen to Personal Data (Private Memo & Checklist)
+            db.collection('users').doc(currentUser.id).onSnapshot(doc => {
+                const checklistContainer = document.getElementById('checklistContainer');
+                checklistContainer.innerHTML = '';
+
+                let myData = doc.exists ? doc.data() : { checklist: {}, customItems: [], privateMemo: '' };
+                
+                // 1. Render Private Memo
+                if (document.activeElement.id !== 'privateMemoInput') {
+                    document.getElementById('privateMemoInput').value = myData.privateMemo || '';
+                    extractLinks(myData.privateMemo || '');
+                }
+
+                // 2. Render Checklist
+                const defaultItems = ["護照", "SIM卡/網卡", "日幣", "信用卡", "行動電源", "個人常備藥", "牙刷牙膏", "雨傘"];
+                const allItems = [...defaultItems, ...(myData.customItems || [])];
+                
+                allItems.forEach(item => {
+                    const isChecked = myData.checklist && myData.checklist[item] ? 'checked' : '';
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label class="flex items-center gap-3 cursor-pointer group p-2 hover:bg-gray-50 rounded-lg">
+                            <input type="checkbox" class="custom-checkbox hidden" ${isChecked} onchange="toggleCheck('${item}')">
+                            <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center bg-white transition-colors"></div>
+                            <span class="text-gray-700 group-hover:text-jp-primary transition select-none flex-1">${item}</span>
+                        </label>
+                    `;
+                    checklistContainer.appendChild(div);
+                });
+            });
+        }
+
+        // --- 4. ACTION FUNCTIONS ---
+
+        // Wallet Actions
+        let tempImageBase64 = null;
+        function calculate() {
+             const input = document.getElementById('calcInput').value;
+             try {
+                if (!/^[0-9+\-*/().\s]+$/.test(input)) throw new Error();
+                const jpy = eval(input);
+                document.getElementById('calcResultTwd').innerText = Math.round(jpy * currentRate).toLocaleString();
+             } catch(e) { document.getElementById('calcResultTwd').innerText = "Err"; }
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const MAX_WIDTH = 300;
+                        const scale = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scale;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        tempImageBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                        document.getElementById('photoPreviewName').innerText = "📸 照片已準備好";
+                    }
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function addExpense() {
+            const item = document.getElementById('expenseItem').value;
+            const amount = document.getElementById('expenseAmount').value;
+            if(!item || !amount) return alert('請輸入完整資訊');
+
+            const btn = document.getElementById('addExpBtn');
+            const loading = document.getElementById('walletLoading');
+            btn.disabled = true; loading.classList.remove('hidden');
+
+            try {
+                await db.collection('expenses').add({
+                    item,
+                    amount: parseFloat(amount),
+                    img: tempImageBase64,
+                    userId: currentUser.id,
+                    userName: currentUser.name,
+                    userAvatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser.seed}&backgroundColor=e5e7eb`,
+                    timestamp: Date.now()
+                });
+                
+                // Reset
+                document.getElementById('expenseItem').value = '';
+                document.getElementById('expenseAmount').value = '';
+                document.getElementById('photoPreviewName').innerText = '';
+                tempImageBase64 = null;
+            } catch(e) {
+                alert('上傳失敗: ' + e.message);
+            } finally {
+                btn.disabled = false; loading.classList.add('hidden');
+            }
+        }
+
+        function deleteExpense(docId) {
+            if(confirm('確定刪除這筆記帳嗎？')) {
+                db.collection('expenses').doc(docId).delete();
+            }
+        }
+
+        function viewImage(base64) {
+            const w = window.open("");
+            w.document.write(`<img src="${base64}" style="width:100%">`);
+        }
+
+        // Memo & List Actions
+        function savePublicMemo() {
+            const content = document.getElementById('publicMemoInput').value;
+            db.collection('global').doc('public_memo').set({ content }, { merge: true });
+        }
+
+        function savePrivateMemo() {
+            const content = document.getElementById('privateMemoInput').value;
+            db.collection('users').doc(currentUser.id).set({ privateMemo: content }, { merge: true });
+            extractLinks(content);
+        }
+
+        function toggleCheck(item) {
+            // Firestore update nested field using dot notation
+            const key = `checklist.${item}`;
+            // First we need to know the current state, but simpler is to just read dom checkbox
+            // However, cleaner is to just toggle true/false. 
+            // Since we don't have atomic toggle in simple SDK, we can use a small transaction or just reading DOM is safer for UI consistency.
+            // Let's rely on reading the document snapshot again or just optimistic update.
+            // For simplicity in this structure: read the current status from local variable? No, let's just use Update.
+            
+            // Getting current checked status from DOM to invert it
+            // Actually, best way is to set it explicitly based on the checkbox 'checked' prop
+            // But 'toggleCheck' is called 'onchange', so the checkbox is ALREADY changed in UI.
+            // We just need to find it? No, passed item string.
+            
+            // To be robust:
+            db.collection('users').doc(currentUser.id).get().then(doc => {
+                let data = doc.data() || {};
+                let checklist = data.checklist || {};
+                checklist[item] = !checklist[item];
+                db.collection('users').doc(currentUser.id).set({ checklist }, { merge: true });
+            });
+        }
+
+        function addCustomCheckitem() {
+            const newItem = prompt("請輸入想新增的物品名稱：");
+            if(newItem) {
+                db.collection('users').doc(currentUser.id).set({
+                    customItems: firebase.firestore.FieldValue.arrayUnion(newItem)
+                }, { merge: true });
+            }
+        }
+
+        function extractLinks(text) {
+            const container = document.getElementById('memoLinks');
+            container.innerHTML = '';
+            const matches = text.match(/(https?:\/\/[^\s]+)/g);
+            if (matches) {
+                matches.forEach(url => {
+                    const a = document.createElement('a');
+                    a.href = url; a.target = '_blank';
+                    a.className = 'text-xs bg-jp-secondary/30 text-jp-text px-2 py-1 rounded truncate inline-block border border-jp-secondary mr-2 mb-2';
+                    a.innerHTML = `<i class="fa-solid fa-link mr-1"></i> 連結`;
+                    container.appendChild(a);
+                });
+            }
+        }
+
+        // Navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-jp-primary'); el.classList.add('text-gray-400');
+            });
+            const indexMap = { 'plan':0, 'guide':1, 'wallet':2, 'lists':3, 'info':4 };
+            const btns = document.querySelectorAll('.nav-btn');
+            btns[indexMap[tabId]].classList.remove('text-gray-400');
+            btns[indexMap[tabId]].classList.add('text-jp-primary');
+            window.scrollTo(0,0);
+        }
+
+        // Init
+        initLoginUI();
+
+    </script>
+</body>
+</html>
