@@ -75,7 +75,7 @@
         
         <header class="p-6 pb-2 sticky top-0 z-30 bg-jp-bg/95 backdrop-blur-sm flex justify-between items-end">
             <div>
-                <h1 class="font-serif text-2xl font-bold tracking-widest text-jp-primary">京阪奈旅記</h1>
+                <h1 class="font-serif text-2xl font-bold tracking-widest text-jp-primary">京阪旅記</h1>
                 <p class="text-xs text-gray-500 tracking-wider mt-1">2026.06.16 - 06.21</p>
             </div>
             <div class="flex flex-col items-center">
@@ -339,6 +339,20 @@
 
         // --- 2. LOGIN LOGIC ---
         function initLoginUI() {
+			// --- 新增這段：檢查通關密語 ---
+			const secretCode = localStorage.getItem('trip_secret_code');
+			if (secretCode !== 'osaka2026') { // 您可以設定自己喜歡的密碼
+				const input = prompt("請輸入本次旅遊的通關密語：");
+				if (input === 'osaka2026') {
+					localStorage.setItem('trip_secret_code', input);
+				} else {
+					alert("密碼錯誤，無法進入！");
+					document.body.innerHTML = ''; // 清空畫面不給看
+					return;
+				}
+			}
+			// ---------------------------
+			const container = document.querySelector('#loginOverlay .grid');
             const container = document.querySelector('#loginOverlay .grid');
             container.innerHTML = '';
             
